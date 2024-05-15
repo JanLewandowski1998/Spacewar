@@ -23,6 +23,7 @@ class Explosion
 public:
 	float flash_radius;
 	float size_increase_rate = 1.1f;
+	v2f center;
 
 	static sf::Texture flash_texture;
 	static sf::Texture particle_texture;
@@ -30,11 +31,14 @@ public:
 	std::vector<sf::Sprite> particles_sprites;
 
 	sf::Clock clock;
+	sf::Time flash_lifetime;
+	sf::Time particles_lifetime;
 
 public:
 	Explosion(const v2f position = v2f(0.0f, 0.0f), float flash_radius = 20.0f)
 	{
 		this->flash_sprite.setPosition(position);
+		this->center = position;
 		this->flash_radius = flash_radius;
 	}
 
@@ -50,6 +54,12 @@ public:
 			std::cerr << "ERROR: Failed to load Explosion Particle texture.\n";
 			return false;
 		}
+		return true;
+	}
+
+	bool update(const sf::Time elapsed)
+	{
+
 		return true;
 	}
 };

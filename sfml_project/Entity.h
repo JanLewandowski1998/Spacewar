@@ -4,6 +4,7 @@
 #include                <SFML/System.hpp>
 #include                <SFML/Window.hpp>
 
+#include                <unordered_map>
 #include                <filesystem>
 #include                <iostream>
 #include                <string>
@@ -109,7 +110,7 @@ public:
         return true;
     }
 
-    bool rotate(const sf::Time elapsed, float rotation_speed, const enum __Rotations__ rotation_direction, const int index = -2)
+    bool rotate(const sf::Time elapsed, const float rotation_speed, const enum __Rotations__ rotation_direction, const int index = -2)
     {
         float rotation = rotation_speed * elapsed.asSeconds() * ((int)rotation_direction * 2 - 1) * (-1);
 
@@ -132,6 +133,11 @@ public:
         else
             return false;
         return true;
+    }
+
+    bool rotate(const sf::Time elapsed, const enum __Rotations__ rotation_direction, const int index = -2)
+    {
+        return this->rotate(elapsed, this->rotation_speed, rotation_direction, index);
     }
 
     bool load_texture(const string path)

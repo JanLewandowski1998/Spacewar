@@ -48,11 +48,28 @@ bool handle_inputs(sf::RenderWindow& window, Ship& player_1, Ship& player_2, con
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
     {
-        player_1.rotate(elapsed, player_1.rotation_speed, __Rotations__::COUNTERCLOCKWISE);
+        //player_1.rotate_gradually(elapsed, __Rotations__::COUNTERCLOCKWISE);
+        player_1.side_acceeration_on(__Rotations__::COUNTERCLOCKWISE);
+    }
+    else
+    {
+        player_1.side_acceeration_off(__Rotations__::COUNTERCLOCKWISE);
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
     {
-        player_1.rotate(elapsed, player_1.rotation_speed, __Rotations__::CLOCKWISE);
+        //player_1.rotate_gradually(elapsed, __Rotations__::CLOCKWISE);
+        player_1.side_acceeration_on(__Rotations__::CLOCKWISE);
+    }
+    else
+    {
+        player_1.side_acceeration_off(__Rotations__::CLOCKWISE);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+    {
+        player_1.rotational_speed[__Rotations__::CLOCKWISE] = 0.0f;
+        player_1.rotational_speed[__Rotations__::COUNTERCLOCKWISE] = 0.0f;
+        player_1.side_acceeration_off(__Rotations__::CLOCKWISE);
+        player_1.side_acceeration_off(__Rotations__::COUNTERCLOCKWISE);
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
     {
@@ -70,11 +87,28 @@ bool handle_inputs(sf::RenderWindow& window, Ship& player_1, Ship& player_2, con
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
     {
-        player_2.rotate(elapsed, player_2.rotation_speed, __Rotations__::COUNTERCLOCKWISE);
+        //player_2.rotate_gradually(elapsed, __Rotations__::COUNTERCLOCKWISE);
+        player_2.side_acceeration_on(__Rotations__::COUNTERCLOCKWISE);
+    }
+    else
+    {
+        player_2.side_acceeration_off(__Rotations__::COUNTERCLOCKWISE);
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
     {
-        player_2.rotate(elapsed, player_2.rotation_speed, __Rotations__::CLOCKWISE);
+        //player_2.rotate_gradually(elapsed, __Rotations__::CLOCKWISE);
+        player_2.side_acceeration_on(__Rotations__::CLOCKWISE);
+    }
+    else
+    {
+        player_2.side_acceeration_off(__Rotations__::CLOCKWISE);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::RControl))
+    {
+        player_2.rotational_speed[__Rotations__::CLOCKWISE] = 0.0f;
+        player_2.rotational_speed[__Rotations__::COUNTERCLOCKWISE] = 0.0f;
+        player_2.side_acceeration_off(__Rotations__::CLOCKWISE);
+        player_2.side_acceeration_off(__Rotations__::COUNTERCLOCKWISE);
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
     {
@@ -100,12 +134,14 @@ bool game(sf::RenderWindow& window)
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_blacktron.png");
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_power_miners.png");
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_x.png");
-    player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_angel_2.png");
-    //player_1.missile_color = sf::Color(67, 255, 255); // Cyan
+    //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_angel_2.png");
+    player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_millenium_falcon.png");
+    player_1.missile_color = sf::Color(67, 255, 255); // Cyan
     //player_1.missile_color = sf::Color(238, 215, 50); // Blacktron
     //player_1.missile_color = sf::Color(52, 205, 108); // Spyrius / Rock Raiders / Power Miners
-    player_1.missile_color = sf::Color(91, 247, 193); // Angel
-    player_1.set_exhaust_colors(sf::Color(0, 255, 128), player_1.missile_color, Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_TINTING);
+    //player_1.missile_color = sf::Color(91, 247, 193); // Angel
+    //player_1.missile_color = sf::Color(181, 59, 61); // Falcon
+    player_1.exhaust_color_tinting = player_1.missile_color;
     player_1.set_scale(3.0f);
     player_1.center_origin();
 
@@ -118,7 +154,7 @@ bool game(sf::RenderWindow& window)
     //player_2.missile_color = sf::Color(52, 205, 108); // Spyrius / Rock Raiders / Power Miners
     player_2.missile_color = sf::Color(0, 255, 166); // Synth
     //player_2.missile_color = sf::Color(238, 215, 50); // Blacktron
-    player_2.set_exhaust_colors(sf::Color(128, 128, 128), player_2.missile_color, Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_TINTING);
+    player_2.exhaust_color_tinting = player_2.missile_color;
     player_2.set_scale(3.0f);
     player_2.center_origin();
     //bool rotate(const sf::Time elapsed, float rotation_speed, const enum __Rotations__ rotation_direction, const int index = -2)
@@ -140,8 +176,9 @@ bool game(sf::RenderWindow& window)
     satellites.push_back(Entity(star.sprite.getPosition() + v2f(800.0f, 100.0f), 10.0f, 10.0f)); satellites[1].set_velocity_vector(v2f(20.0f, -40.0f));
     satellites.push_back(Entity(star.sprite.getPosition() + v2f(-800.0f, -200.0f), 10.0f, 10.0f)); satellites[2].set_velocity_vector(v2f(-27.0f, 39.0f));
     satellites.push_back(Entity(star.sprite.getPosition() + v2f(10.0f, 420.0f), 10.0f, 10.0f)); satellites[3].set_velocity_vector(v2f(84.0f, 0.0f));
-    satellites[0].rotation_speed = 60.0f; satellites[1].rotation_speed = 44.0f; satellites[2].rotation_speed = 7.0f; satellites[3].rotation_speed = 53.0f;
-    satellites[0].name = "Hygiea"; satellites[1].name = "Amalthea"; satellites[2].name = "Psyche"; satellites[3].name = "Parthenope";
+    satellites.push_back(Entity(star.sprite.getPosition() + v2f(-300.0f, 420.0f), 10.0f, 10.0f)); satellites[4].set_velocity_vector(v2f(82.0f, -15.0f));
+    satellites[0].rotation_speed = 90.0f; satellites[1].rotation_speed = 44.0f; satellites[2].rotation_speed = 7.0f; satellites[3].rotation_speed = 75.0f; satellites[4].rotation_speed = 35.0f;
+    satellites[0].name = "Hygiea"; satellites[1].name = "Amalthea"; satellites[2].name = "Psyche"; satellites[3].name = "Parthenope"; satellites[4].name = "Thule";
     for (uint i = 0; i < satellites.size(); i++)
     {
         satellites[i].load_texture(current_path_string + "\\Textures\\Satellites\\" + satellites[i].name + ".png");
@@ -154,6 +191,7 @@ bool game(sf::RenderWindow& window)
 
     // Initialize Exhaust Particles' static texture:
     Exhaust_Particle::load_texture(current_path_string + "\\Textures\\exhaust_particle.png");
+    Exhaust_Particle::load_thrust_texture(current_path_string + "\\Textures\\thrust_particle.png");
 
     // Initialize Background:
     sf::Texture background_texture;
@@ -196,7 +234,7 @@ bool game(sf::RenderWindow& window)
         for (uint i = 0; i < satellites.size(); i++)
         {
             satellites[i].calculate_force_and_update_velocity(star, elapsed);
-            satellites[i].rotate(elapsed, satellites[i].rotation_speed, __Rotations__::COUNTERCLOCKWISE);
+            satellites[i].rotate(elapsed, __Rotations__::COUNTERCLOCKWISE);
         }
         
         // Teleport:
@@ -204,12 +242,16 @@ bool game(sf::RenderWindow& window)
         player_2.teleport(window.getSize());
 
         // Rotate the star and its halo:
-        star.rotate(elapsed, star.rotation_speed, __Rotations__::COUNTERCLOCKWISE, -1);
-        star.rotate(elapsed, star.halo_rotation_speed, __Rotations__::COUNTERCLOCKWISE, 0);
+        star.rotate(elapsed, __Rotations__::COUNTERCLOCKWISE, -1);
+        star.rotate(elapsed, __Rotations__::COUNTERCLOCKWISE, 0);
 
         // Update exhaust particles positions:
         player_1.update_exhaust_particles(elapsed);
         player_2.update_exhaust_particles(elapsed);
+
+        // Update rotation:
+        player_1.update_rotation(elapsed);
+        player_2.update_rotation(elapsed);
 
         // Update missiles positions:
         player_1.update_missiles(elapsed);

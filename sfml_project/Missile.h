@@ -11,7 +11,7 @@ typedef sf::Vector2u    v2u;
 class Missile : public Entity
 {
 public:
-    float velocity_default_magnitude = 500.0f;
+    float velocity_default_magnitude = 550.0f;
     float theta;
     float theta_radians;
     static sf::Texture texture;

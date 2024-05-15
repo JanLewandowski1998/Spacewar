@@ -22,21 +22,32 @@ public:
     uint energy;
     uint energy_max = 100;
 
+    float rotational_acceleration_value = 400.0f;
+    std::unordered_map<__Rotations__, float> rotational_acceleration;
+    std::unordered_map<__Rotations__, float> rotational_speed;
+
     std::vector<Missile> missiles;
     std::vector<Exhaust_Particle> exhaust_particles;
+    std::vector<Exhaust_Particle> thrust_particles;
 
-    sf::Time missile_cooldown = sf::seconds(0.2f);
+    sf::Time time_to_reach_full_rotation_speed = sf::seconds(0.5f);
+    sf::Clock rotation_timer;
+
+    sf::Time missile_cooldown = sf::seconds(0.12f);
     sf::Clock missile_cooldown_timer;
 
-    sf::Time exhaust_particle_cooldown = sf::seconds(0.02f);
+    sf::Time exhaust_particle_cooldown = sf::seconds(0.015f);
     sf::Clock exhaust_particle_cooldown_timer;
-    sf::Time exhaust_partice_lifetime = sf::seconds(1.75f);
+    sf::Time exhaust_partice_lifetime = sf::seconds(1.25f);
+
+    sf::Time thrust_particle_cooldown = sf::seconds(0.01f);
+    sf::Clock thrust_particle_cooldown_timer;
+    sf::Time thrust_partice_lifetime = sf::seconds(0.4f);
 
     sf::Color missile_color = sf::Color(255, 255, 255);
     sf::Color exhaust_max_color_subtraction = sf::Color(128, 128, 128);
     sf::Color exhaust_color_tinting = sf::Color(0, 0, 0);
-    enum class Exhaust_Partice_Colorization_Method {RANDOMIZED_SUBTRACTION, RANDOMIZED_TINTING, TINTING};
-    Exhaust_Partice_Colorization_Method exhaust_partice_colorization_method = Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_SUBTRACTION;
+    enum class Exhaust_Partice_Colorization_Method {RANDOMIZED_SUBTRACTION, RANDOMIZED_TINTING, TINTING, TINTING_EXCEPT_WHITE};
 
 public:
     Ship(string name = "", v2f const position = v2f(0.0f, 0.0f), const float mass = 10.0f, const float rotation_speed = 220.0f)
@@ -54,6 +65,16 @@ public:
 
         this->health = this->health_max;
         this->energy = this->energy_max;
+
+        rotation_timer.restart();
+        missile_cooldown_timer.restart();
+        exhaust_particle_cooldown_timer.restart();
+        thrust_particle_cooldown_timer.restart();
+
+        this->rotational_acceleration[__Rotations__::CLOCKWISE] = 0.0f;
+        this->rotational_acceleration[__Rotations__::COUNTERCLOCKWISE] = 0.0f;
+        this->rotational_speed[__Rotations__::CLOCKWISE] = 0.0f;
+        this->rotational_speed[__Rotations__::COUNTERCLOCKWISE] = 0.0f;
     }
 
     bool draw_missiles(sf::RenderWindow& window)
@@ -70,6 +91,10 @@ public:
         for (uint i = 0; i < this->exhaust_particles.size(); i++)
         {
             this->exhaust_particles[i].draw(window);
+        }
+        for (uint i = 0; i < this->thrust_particles.size(); i++)
+        {
+            this->thrust_particles[i].draw(window);
         }
         return true;
     }
@@ -109,24 +134,16 @@ public:
         return true;
     }
 
-    bool set_exhaust_colors(sf::Color exhaust_max_color_subtraction, sf::Color exhaust_color_tinting, Ship::Exhaust_Partice_Colorization_Method exhaust_partice_colorization_method)
+    bool colorize_exhaust_particle(Exhaust_Particle& particle, const Ship::Exhaust_Partice_Colorization_Method exhaust_partice_colorization_method = Ship::Exhaust_Partice_Colorization_Method::TINTING)
     {
-        this->exhaust_max_color_subtraction = exhaust_max_color_subtraction;
-        this->exhaust_color_tinting = exhaust_color_tinting;
-        this->exhaust_partice_colorization_method = exhaust_partice_colorization_method;
-        return true;
-    }
-
-    bool colorize_exhaust_particle(Exhaust_Particle& particle)
-    {
-        if (this->exhaust_partice_colorization_method == Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_SUBTRACTION)
+        if (exhaust_partice_colorization_method == Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_SUBTRACTION)
         {
             sf::Color randomized_hue = sf::Color(255 - rand() % (this->exhaust_max_color_subtraction.r + 1),
                                                  255 - rand() % (this->exhaust_max_color_subtraction.g + 1),
                                                  255 - rand() % (this->exhaust_max_color_subtraction.b + 1));
             particle.sprite.setColor(randomized_hue);
         }
-        else if (this->exhaust_partice_colorization_method == Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_TINTING)
+        else if (exhaust_partice_colorization_method == Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_TINTING)
         {
             float random_saturation = (rand() % (100 + 1)) / 100.0f;
             sf::Color randomized_hue = this->exhaust_color_tinting;
@@ -135,8 +152,13 @@ public:
             randomized_hue.b = randomized_hue.b + ((255 - randomized_hue.b) * random_saturation);
             particle.sprite.setColor(randomized_hue);
         }
-        else if (this->exhaust_partice_colorization_method == Ship::Exhaust_Partice_Colorization_Method::TINTING)
+        else if (exhaust_partice_colorization_method == Ship::Exhaust_Partice_Colorization_Method::TINTING)
         {
+            particle.sprite.setColor(this->exhaust_color_tinting);
+        }
+        else if (exhaust_partice_colorization_method == Ship::Exhaust_Partice_Colorization_Method::TINTING_EXCEPT_WHITE)
+        {
+            // TODO
             particle.sprite.setColor(this->exhaust_color_tinting);
         }
         else
@@ -148,28 +170,40 @@ public:
 
     bool try_generate_exhaust_particle()
     {
+        v2f position = this->sprite.getPosition();
+        const float velocity_angle = this->sprite.getRotation() + 180.0f;
+        const float rotation_angle_radians = (velocity_angle) * __pi__ / 180.0f;
+
+        float random_angle_offset = (float)(rand() % 100) / 100.0f * 4.0f;
+        random_angle_offset *= ((rand() % 2) * 2.0f) - 1.0f; //Clockwise or Counterclockwise 
+
+        const float offset_x = std::cos(rotation_angle_radians) * this->get_average_scale() * 0.7f * (this->sprite.getLocalBounds().width / 2.0f);
+        const float offset_y = std::sin(rotation_angle_radians) * this->get_average_scale() * 0.7f * (this->sprite.getLocalBounds().width / 2.0f);
+        position += v2f(offset_x, offset_y);
+
         if (this->exhaust_particle_cooldown_timer.getElapsedTime() > this->exhaust_particle_cooldown)
         {
             this->exhaust_particle_cooldown_timer.restart();
-
-            v2f position = this->sprite.getPosition();
-            float velocity_angle = this->sprite.getRotation() + 180.0f;
-            float rotation_angle_radians = (velocity_angle) * __pi__ / 180.0f;
-            
-            float offset_x = std::cos(rotation_angle_radians) * this->get_average_scale() * 0.7f * (this->sprite.getLocalBounds().width / 2.0f);
-            float offset_y = std::sin(rotation_angle_radians) * this->get_average_scale() * 0.7f * (this->sprite.getLocalBounds().width / 2.0f);
-
-            position += v2f(offset_x, offset_y);
-
-            float random_angle_offset = (float)(rand() % 100) / 100.0f * 4.0f;
-            random_angle_offset *= ((rand() % 2) * 2.0f) - 1.0f;
-
             this->exhaust_particles.push_back(Exhaust_Particle(position,
                                                                velocity_angle + random_angle_offset,
-                                                               this->velocity_vector));
-            this->exhaust_particles[this->exhaust_particles.size() - 1].set_scale(3.0f);
+                                                               this->velocity_vector,
+                                                               true,
+                                                               1));
 
-            this->colorize_exhaust_particle(this->exhaust_particles[this->exhaust_particles.size() - 1]);
+            this->exhaust_particles[this->exhaust_particles.size() - 1].set_scale(3.0f);
+            this->colorize_exhaust_particle(this->exhaust_particles[this->exhaust_particles.size() - 1], Ship::Exhaust_Partice_Colorization_Method::RANDOMIZED_TINTING);
+        }
+        if (this->thrust_particle_cooldown_timer.getElapsedTime() > this->thrust_particle_cooldown)
+        {
+            this->thrust_particle_cooldown_timer.restart();
+            this->thrust_particles.push_back(Exhaust_Particle(position,
+                                                              velocity_angle,
+                                                              this->velocity_vector,
+                                                              false,
+                                                              2));
+
+            this->thrust_particles[this->thrust_particles.size() - 1].set_scale(3.0f);
+            //this->colorize_exhaust_particle(this->thrust_particles[this->thrust_particles.size() - 1], Ship::Exhaust_Partice_Colorization_Method::TINTING);
         }
         return true;
     }
@@ -184,6 +218,18 @@ public:
     bool thrust_off()
     {
         this->current_thrust_force = 0.0f;
+        return true;
+    }
+
+    bool side_acceeration_on(const enum __Rotations__ rotation_direction)
+    {
+        this->rotational_acceleration[rotation_direction] = this->rotational_acceleration_value;
+        return true;
+    }
+
+    bool side_acceeration_off(const enum __Rotations__ rotation_direction)
+    {
+        this->rotational_acceleration[rotation_direction] = 0.0f;
         return true;
     }
 
@@ -214,7 +260,7 @@ public:
         for (uint i = 0; i < this->exhaust_particles.size(); i++)
         {
             this->exhaust_particles[i].update_position(elapsed);
-            this->exhaust_particles[i].rotate(elapsed, this->exhaust_particles[i].rotation_speed, this->exhaust_particles[i].rotation_direction);
+            this->exhaust_particles[i].rotate(elapsed, this->exhaust_particles[i].rotation_direction);
             sf::Time time = this->exhaust_particles[i].clock.getElapsedTime();
             float ratio = time.asSeconds() / this->exhaust_partice_lifetime.asSeconds();
             if (ratio > 1)
@@ -223,12 +269,38 @@ public:
                 i--;
                 continue;
             }
-            uint r, g, b;
-            r = this->exhaust_particles[i].sprite.getColor().r;
-            g = this->exhaust_particles[i].sprite.getColor().g;
-            b = this->exhaust_particles[i].sprite.getColor().b;
-            this->exhaust_particles[i].sprite.setColor(sf::Color(r, g, b, 255 - (int)(ratio * 255)));
-            this->exhaust_particles[i].sprite.setScale(this->exhaust_particles[i].sprite.getScale() * (1.0f + this->exhaust_particles[i].size_increase_rate * elapsed.asSeconds()));
+            else
+            {
+                uint r, g, b;
+                r = this->exhaust_particles[i].sprite.getColor().r;
+                g = this->exhaust_particles[i].sprite.getColor().g;
+                b = this->exhaust_particles[i].sprite.getColor().b;
+                this->exhaust_particles[i].sprite.setColor(sf::Color(r, g, b, 255 - (int)(ratio * 255)));
+                this->exhaust_particles[i].sprite.setScale(this->exhaust_particles[i].sprite.getScale() * (1.0f + this->exhaust_particles[i].size_increase_rate * elapsed.asSeconds()));
+            }
+        }
+
+        for (uint i = 0; i < this->thrust_particles.size(); i++)
+        {
+            this->thrust_particles[i].update_position(elapsed);
+            //this->thrust_particles[i].rotate(elapsed, this->thrust_particles[i].rotation_speed * 3.0f, this->thrust_particles[i].rotation_direction);
+            sf::Time time = this->thrust_particles[i].clock.getElapsedTime();
+            float ratio = time.asSeconds() / this->thrust_partice_lifetime.asSeconds();
+            if (ratio > 1)
+            {
+                this->thrust_particles.erase(this->thrust_particles.begin() + i);
+                i--;
+                continue;
+            }
+            else
+            {
+                uint r, g, b;
+                r = this->thrust_particles[i].sprite.getColor().r;
+                g = this->thrust_particles[i].sprite.getColor().g;
+                b = this->thrust_particles[i].sprite.getColor().b;
+                this->thrust_particles[i].sprite.setColor(sf::Color(r, g, b, 255 - (int)(ratio * 255)));
+                //this->thrust_particles[i].sprite.setScale(this->thrust_particles[i].sprite.getScale() * 1.00f);
+            }
         }
         return true;
     }
@@ -246,6 +318,28 @@ public:
                 this->missiles[i].flickering_clock.restart();
             }
         }
+        return true;
+    }
+
+    bool update_rotation(const sf::Time elapsed)
+    {
+        float delta_clockwise, delta_counterclockwise;
+        delta_clockwise = this->rotational_acceleration[__Rotations__::CLOCKWISE] * elapsed.asSeconds();
+        delta_counterclockwise = this->rotational_acceleration[__Rotations__::COUNTERCLOCKWISE] * elapsed.asSeconds();
+
+        this->rotational_speed[__Rotations__::CLOCKWISE] = this->rotational_speed[__Rotations__::CLOCKWISE] + delta_clockwise;
+        this->rotational_speed[__Rotations__::CLOCKWISE] = this->rotational_speed[__Rotations__::CLOCKWISE] - delta_counterclockwise;
+        this->rotational_speed[__Rotations__::COUNTERCLOCKWISE] = this->rotational_speed[__Rotations__::COUNTERCLOCKWISE] + delta_counterclockwise;
+        this->rotational_speed[__Rotations__::COUNTERCLOCKWISE] = this->rotational_speed[__Rotations__::COUNTERCLOCKWISE] - delta_clockwise;
+
+        this->rotational_speed[__Rotations__::CLOCKWISE] = std::min(this->rotation_speed, this->rotational_speed[__Rotations__::CLOCKWISE]);
+        this->rotational_speed[__Rotations__::CLOCKWISE] = std::max(0.0f, this->rotational_speed[__Rotations__::CLOCKWISE]);
+        this->rotational_speed[__Rotations__::COUNTERCLOCKWISE] = std::min(this->rotation_speed, this->rotational_speed[__Rotations__::COUNTERCLOCKWISE]);
+        this->rotational_speed[__Rotations__::COUNTERCLOCKWISE] = std::max(0.0f, this->rotational_speed[__Rotations__::COUNTERCLOCKWISE]);
+
+        this->rotate(elapsed, this->rotational_speed[__Rotations__::CLOCKWISE], __Rotations__::CLOCKWISE, -1);
+        this->rotate(elapsed, this->rotational_speed[__Rotations__::COUNTERCLOCKWISE], __Rotations__::COUNTERCLOCKWISE, -1);
+
         return true;
     }
 };
