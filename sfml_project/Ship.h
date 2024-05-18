@@ -13,7 +13,7 @@ typedef sf::Vector2u    v2u;
 class Ship : public Entity
 {
 public:
-    float thrust_force = 2000.0f;
+    float thrust_force = 2500.0f;
     float current_thrust_force = 0.0f;
 
     uint health;
@@ -40,9 +40,9 @@ public:
     sf::Clock exhaust_particle_cooldown_timer;
     sf::Time exhaust_partice_lifetime = sf::seconds(1.25f);
 
-    sf::Time thrust_particle_cooldown = sf::seconds(0.01f);
+    sf::Time thrust_particle_cooldown = sf::seconds(0.000f);
     sf::Clock thrust_particle_cooldown_timer;
-    sf::Time thrust_partice_lifetime = sf::seconds(0.4f);
+    sf::Time thrust_partice_lifetime = sf::seconds(0.7f);
 
     sf::Color missile_color = sf::Color(255, 255, 255);
     sf::Color exhaust_max_color_subtraction = sf::Color(128, 128, 128);
@@ -200,7 +200,7 @@ public:
                                                               velocity_angle,
                                                               this->velocity_vector,
                                                               false,
-                                                              2));
+                                                              1));
 
             this->thrust_particles[this->thrust_particles.size() - 1].set_scale(3.0f);
             //this->colorize_exhaust_particle(this->thrust_particles[this->thrust_particles.size() - 1], Ship::Exhaust_Partice_Colorization_Method::TINTING);

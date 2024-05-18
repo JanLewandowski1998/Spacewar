@@ -282,6 +282,11 @@ public:
 
         this->sprite.move(v2f(delta_x, delta_y));
 
+        for (uint i = 0; i < this->additional_sprites.size(); i++)
+        {
+            this->additional_sprites[i].move(v2f(delta_x, delta_y));
+        }
+
         return true;
     }
 

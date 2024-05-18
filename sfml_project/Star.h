@@ -15,7 +15,7 @@ public:
     float radius = 0.0f;
 
 public:
-    Star(const v2f position = v2f(0.0f, 0.0f), const float mass = 400000.0f /*35000*/, const float rotation_speed = 15.0f, const float halo_rotation_speed = 5.0f)
+    Star(const v2f position = v2f(0.0f, 0.0f), const float mass = 400000.0f /*35000*/, const float rotation_speed = 20.0f, const float halo_rotation_speed = 7.5f)
     {
         this->sprite.setPosition(position);
         this->mass = mass;

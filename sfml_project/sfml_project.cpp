@@ -130,14 +130,16 @@ bool game(sf::RenderWindow& window)
     v2f player_1_position = v2f(window.getSize().x * 0.1f, window.getSize().y * 0.1f);
     Ship player_1("Alice", player_1_position);
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_default.png");
+     player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_galaxy_explorer.png");
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_rock_raiders.png");
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_blacktron.png");
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_power_miners.png");
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_x.png");
     //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_angel_2.png");
-    player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_millenium_falcon.png");
-    player_1.missile_color = sf::Color(67, 255, 255); // Cyan
-    //player_1.missile_color = sf::Color(238, 215, 50); // Blacktron
+    //player_1.load_texture(current_path_string + "\\Textures\\Ships\\ship_millenium_falcon.png");
+    //player_1.missile_color = sf::Color(67, 255, 255); // Cyan
+    player_1.missile_color = sf::Color(238, 215, 50); // Blacktron / Galaxy Explorer
+    //player_1.missile_color = sf::Color(255, 20, 20); // Red
     //player_1.missile_color = sf::Color(52, 205, 108); // Spyrius / Rock Raiders / Power Miners
     //player_1.missile_color = sf::Color(91, 247, 193); // Angel
     //player_1.missile_color = sf::Color(181, 59, 61); // Falcon
@@ -165,7 +167,7 @@ bool game(sf::RenderWindow& window)
     star.load_texture(current_path_string + "\\Textures\\star.png");
     star.load_additional_texture(current_path_string + "\\Textures\\star_halo_9.png");
     star.set_scale(3.0f);
-    star.set_additional_sprite_scale(6.0, 0);
+    star.set_additional_sprite_scale(6.0f, 0);
     star.center_origin();
     star.adjust_radius();
 
@@ -177,14 +179,31 @@ bool game(sf::RenderWindow& window)
     satellites.push_back(Entity(star.sprite.getPosition() + v2f(-800.0f, -200.0f), 10.0f, 10.0f)); satellites[2].set_velocity_vector(v2f(-27.0f, 39.0f));
     satellites.push_back(Entity(star.sprite.getPosition() + v2f(10.0f, 420.0f), 10.0f, 10.0f)); satellites[3].set_velocity_vector(v2f(84.0f, 0.0f));
     satellites.push_back(Entity(star.sprite.getPosition() + v2f(-300.0f, 420.0f), 10.0f, 10.0f)); satellites[4].set_velocity_vector(v2f(82.0f, -15.0f));
-    satellites[0].rotation_speed = 90.0f; satellites[1].rotation_speed = 44.0f; satellites[2].rotation_speed = 7.0f; satellites[3].rotation_speed = 75.0f; satellites[4].rotation_speed = 35.0f;
-    satellites[0].name = "Hygiea"; satellites[1].name = "Amalthea"; satellites[2].name = "Psyche"; satellites[3].name = "Parthenope"; satellites[4].name = "Thule";
+    satellites.push_back(Entity(star.sprite.getPosition() + v2f(600.0f, -130.0f), 10.0f, 10.0f)); satellites[5].set_velocity_vector(v2f(-20.0f, -66.5f));
+    satellites.push_back(Entity(star.sprite.getPosition() + v2f(100.0f, 450.0f), 10.0f, 10.0f)); satellites[6].set_velocity_vector(v2f(90.0f, 0.0f));
+    satellites[0].rotation_speed = 90.0f;
+    satellites[1].rotation_speed = 44.0f;
+    satellites[2].rotation_speed = 7.0f;
+    satellites[3].rotation_speed = 75.0f;
+    satellites[4].rotation_speed = 35.0f;
+    satellites[5].rotation_speed = 56.0f;
+    satellites[6].rotation_speed = 12.8f;
+    satellites[0].name = "Hygiea";
+    satellites[1].name = "Amalthea";
+    satellites[2].name = "Psyche";
+    satellites[3].name = "Parthenope";
+    satellites[4].name = "Thule";
+    satellites[5].name = "Ceres_2";
+    satellites[5].load_additional_texture(current_path_string + "\\Textures\\Satellites\\halo.png");
+    //satellites[5].name = "Ceres";
+    satellites[6].name = "Lutetia";
     for (uint i = 0; i < satellites.size(); i++)
     {
         satellites[i].load_texture(current_path_string + "\\Textures\\Satellites\\" + satellites[i].name + ".png");
         satellites[i].set_scale(3.0f);
         satellites[i].center_origin();
     }
+    satellites[5].set_additional_sprite_scale(6.0f, 0);
 
     // Initiaize Missiles' static texture:
     Missile::load_texture(current_path_string + "\\Textures\\missile.png");
@@ -243,7 +262,7 @@ bool game(sf::RenderWindow& window)
 
         // Rotate the star and its halo:
         star.rotate(elapsed, __Rotations__::COUNTERCLOCKWISE, -1);
-        star.rotate(elapsed, __Rotations__::COUNTERCLOCKWISE, 0);
+        star.rotate(elapsed, star.halo_rotation_speed, __Rotations__::COUNTERCLOCKWISE, 0);
 
         // Update exhaust particles positions:
         player_1.update_exhaust_particles(elapsed);
